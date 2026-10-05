@@ -1,26 +1,46 @@
 const express = require("express");
 const router = express.Router();
-const compras = require("../data/compras");
+const pool = require("../db/pool");
 const { obtenerCliente } = require("../services/clienteService");
 const { obtenerProducto } = require("../services/productoService");
 
-let siguienteId = 1;
+// Convierte una fila de la tabla (snake_case) al formato que ya usaba el array (camelCase)
+function mapCompra(fila) {
+  return {
+    id: fila.id,
+    clienteId: fila.cliente_id,
+    productoId: fila.producto_id,
+    cantidad: fila.cantidad,
+    total: Number(fila.total),
+    fecha: fila.fecha
+  };
+}
 
 // GET /compras
-router.get("/", (req, res) => {
-  res.status(200).json(compras);
+router.get("/", async (req, res) => {
+  try {
+    const resultado = await pool.query("SELECT * FROM compras ORDER BY id");
+    res.status(200).json(resultado.rows.map(mapCompra));
+  } catch (error) {
+    res.status(500).json({ mensaje: "Error al consultar compras", detalle: error.message });
+  }
 });
 
 // GET /compras/:id
-router.get("/:id", (req, res) => {
+router.get("/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const compra = compras.find((compra) => compra.id === id);
 
-  if (!compra) {
-    return res.status(404).json({ mensaje: "Compra no encontrada" });
+  try {
+    const resultado = await pool.query("SELECT * FROM compras WHERE id = $1", [id]);
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ mensaje: "Compra no encontrada" });
+    }
+
+    res.status(200).json(mapCompra(resultado.rows[0]));
+  } catch (error) {
+    res.status(500).json({ mensaje: "Error al consultar compra", detalle: error.message });
   }
-
-  res.status(200).json(compra);
 });
 
 // POST /compras
@@ -60,17 +80,18 @@ router.post("/", async (req, res) => {
     });
   }
 
-  const nuevaCompra = {
-    id: siguienteId++,
-    clienteId,
-    productoId,
-    cantidad,
-    total: producto.precio * cantidad,
-    fecha: new Date().toISOString()
-  };
+  const total = Number(producto.precio) * cantidad;
 
-  compras.push(nuevaCompra);
-  res.status(201).json(nuevaCompra);
+  try {
+    const resultado = await pool.query(
+      `INSERT INTO compras (cliente_id, producto_id, cantidad, total)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [clienteId, productoId, cantidad, total]
+    );
+    res.status(201).json(mapCompra(resultado.rows[0]));
+  } catch (error) {
+    res.status(500).json({ mensaje: "Error al crear compra", detalle: error.message });
+  }
 });
 
 module.exports = router;
