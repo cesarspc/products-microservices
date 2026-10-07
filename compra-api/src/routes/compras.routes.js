@@ -4,7 +4,6 @@ const pool = require("../db/pool");
 const { obtenerCliente } = require("../services/clienteService");
 const { obtenerProducto } = require("../services/productoService");
 
-// Convierte una fila de la tabla (snake_case) al formato que ya usaba el array (camelCase)
 function mapCompra(fila) {
   return {
     id: fila.id,
