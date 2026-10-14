@@ -5,7 +5,7 @@ app.use(express.json());
 
 // Rutas
 const clienteRoutes = require('./routes/clienteRoutes');
-app.use('/clients', clienteRoutes);
+app.use('/clientes', clienteRoutes);
 
 // Para agregar más entidades en el futuro:
 // const otraRoutes = require('./routes/otraRoutes');

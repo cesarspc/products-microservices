@@ -1,10 +1,10 @@
 const Cliente = require('../models/cliente');
 
-// GET /libros — devuelve todos los registros
+// GET /clientes — devuelve todos los registros
 const obtenerTodos = async (req, res) => {
   try {
     const clientes = await Cliente.findAll();
-    res.json(libros);
+    res.json(clientes);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener los clientes', detalle: error.message });
   }
@@ -44,7 +44,7 @@ const crear = async (req, res) => {
   }
 };
 
-// PUT /cliente/:id — actualiza los campos de un registro existente
+// PUT /clientes/:id — actualiza los campos de un registro existente
 const actualizar = async (req, res) => {
   try {
     const cliente = await Cliente.findByPk(req.params.id);
@@ -67,7 +67,7 @@ const actualizar = async (req, res) => {
 const eliminar = async (req, res) => {
   try {
     const cliente = await Cliente.findByPk(req.params.id);
-    if (!libro) {
+    if (!cliente) {
       return res.status(404).json({ error: `No se encontró el cliente con ID ${req.params.id}` });
     }
     await cliente.destroy();

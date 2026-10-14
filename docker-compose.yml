@@ -1,12 +1,16 @@
 services:
 
-  # Servicio 1: API de Node.js
+  # Servicio 1: API de clientes
   cliente-api:
     build:
       context: ./cliente-api
       dockerfile: Dockerfile
     env_file:
       - cliente-api/.env
+    # "environment" tiene prioridad sobre env_file. Dentro de Docker la base de
+    # datos no está en localhost sino en el servicio "db".
+    environment:
+      - DB_HOST=db
     ports:
       - "3001:3001"
     depends_on:
@@ -14,17 +18,58 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Servicio 2: PostgreSQL
+  # Servicio 2: API de productos
+  producto-api:
+    build:
+      context: ./producto-api
+      dockerfile: Dockerfile
+    env_file:
+      - producto-api/.env
+    environment:
+      - DB_HOST=db
+    ports:
+      - "3002:3002"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Servicio 3: API de compras (llama a cliente-api y producto-api)
+  compra-api:
+    build:
+      context: ./compra-api
+      dockerfile: Dockerfile
+    env_file:
+      - compra-api/.env
+    environment:
+      - DB_HOST=db
+      # Dentro de la red de Compose cada API se llama por su nombre de servicio
+      - CLIENTE_API_URL=http://cliente-api:3001
+      - PRODUCTO_API_URL=http://producto-api:3002
+    ports:
+      - "3003:3003"
+    depends_on:
+      db:
+        condition: service_healthy
+      cliente-api:
+        condition: service_started
+      producto-api:
+        condition: service_started
+    restart: unless-stopped
+
+  # Servicio 4: PostgreSQL (una sola base compartida, una tabla por API)
   db:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_DB=compras_full_db
-      - POSTGRES_USER=microservicios
-      - POSTGRES_PASSWORD=microservicios123
+      - POSTGRES_DB=db
+      - POSTGRES_USER=db_user
+      - POSTGRES_PASSWORD=db_pass
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Scripts en esta carpeta se ejecutan solo cuando el volumen está vacío
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U microservicios"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5

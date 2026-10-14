@@ -8,10 +8,10 @@ const {
   eliminar,
 } = require('../controllers/clienteController');
 
-router.get('/',          obtenerTodos);
-router.get('/:isbn',     obtenerUno);
-router.post('/',         crear);
-router.put('/:isbn',     actualizar);
-router.delete('/:isbn',  eliminar);
+router.get('/',        obtenerTodos);
+router.get('/:id',     obtenerUno);
+router.post('/',       crear);
+router.put('/:id',     actualizar);
+router.delete('/:id',  eliminar);
 
 module.exports = router;
